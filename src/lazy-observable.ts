@@ -1,10 +1,12 @@
 import { IDENTITY } from "./utils"
-import { observable, action, _allowStateChanges } from "mobx"
+import { observable, action, _allowStateChanges, IObservableValue } from "mobx"
 
 export interface ILazyObservable<T> {
     current(): T
     refresh(): T
     reset(): T
+    pending: boolean
+    initialized: boolean
 }
 
 /**
@@ -37,7 +39,9 @@ export interface ILazyObservable<T> {
  * @returns {{
  *     current(): T,
  *     refresh(): T,
- *     reset(): T
+ *     reset(): T,
+ *     pendind: boolean,
+ *     initialized: boolean
  * }}
  */
 
@@ -47,12 +51,17 @@ export function lazyObservable<T>(
 ): ILazyObservable<T> {
     let started = false
     const value = observable.box(initialValue, { deep: false })
+    const pending = observable.box(false)
+    const initialized = observable.box(false)
     let currentFnc = () => {
         if (!started) {
             started = true
+            pending.set(true)
             fetch((newValue: T) => {
                 _allowStateChanges(true, () => {
                     value.set(newValue)
+                    pending.set(false)
+                    initialized.set(true)
                 })
             })
         }
@@ -74,6 +83,12 @@ export function lazyObservable<T>(
         },
         reset: () => {
             return resetFnc()
+        },
+        get pending() {
+            return pending.get()
+        },
+        get initialized() {
+            return initialized.get()
         }
     }
 }

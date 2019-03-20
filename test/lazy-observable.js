@@ -90,3 +90,29 @@ test("lazy observable reset", done => {
         done()
     }, 200)
 })
+
+test("lazy observable pending", done => {
+    const lo = utils.lazyObservable(sink => new Promise(resolve => {
+        setTimeout(resolve, 100)
+    }).then(sink))
+
+    expect(lo.pending).toBeFalsy()
+
+    lo.current()
+    expect(lo.pending).toBeTruthy()
+
+    setTimeout(() => {
+        expect(lo.pending).toBeFalsy()
+        done()
+    }, 150)
+})
+
+test("lazy observable initialized", done => {
+    const lo = utils.lazyObservable(sink => sink(1))
+
+    expect(lo.initialized).toBeFalsy()
+    lo.current()
+    expect(lo.initialized).toBeTruthy()
+
+    done()
+})
